@@ -53,12 +53,13 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
                     self.__device['lastProgramming'] = self.__SendParams()
             except Exception as ex:
                 logging.error(ex)
-                traceback.print_exc()    
+                traceback.print_exc() 
+                   
             #time.sleep(self.__sleepTime)
-			t=0
-			while t < self.__sleepTime and not self.__programming:		#interrupt sleeping when programming request
-				time.sleep(2)
-				t+=2
+            t=0
+            while t < self.__sleepTime and not self.__programming:		#interrupt sleeping when programming request
+                time.sleep(2)
+                t+=2
 			
         self.__Disconnect()
         logging.info('DeDitrichMCR3_RS232_RemehaPCU05: stopped thread')   
