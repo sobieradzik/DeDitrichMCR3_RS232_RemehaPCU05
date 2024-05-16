@@ -1,6 +1,10 @@
 # DeDitrich MCR3 connectivity using Remeha as PCU05 module
 
+[![made-with-python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 ![License](https://img.shields.io/github/license/shsarv/Machine-Learning-Projects) 
+![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)
+[![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/sobieradzik/DeDitrichMCR3_RS232_RemehaPCU05.git)
+
 
 Solution with example of usage for connecting DeDitrich MCR3 boiler on RS232 using Remeha protocol as PCU-05 module. 
 The exported class is a seperate thread that can (re)connect, read parts of Sample, Params, IDs and finnaly can write params. 
