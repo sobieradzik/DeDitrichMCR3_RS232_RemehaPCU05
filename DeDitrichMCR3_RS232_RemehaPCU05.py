@@ -6,11 +6,13 @@ import traceback
 from datetime import date, datetime
 import time
 
+logger = logging.getLogger('mylogger.module')
+
 class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
     
     def __init__(self):
         super(DeDitrichMCR3_RS232_RemehaPCU05, self).__init__()
-        logging.warning('DeDitrichMCR3_RS232_RemehaPCU05: __init__ call')   
+        logger.debug('DeDitrichMCR3_RS232_RemehaPCU05: __init__ call')   
         self.__SerialPort = '/dev/ttyUSB0'   #for RPi
         #self.__SerialPort = 'COM5'            #for Windows OS
         self.__stop = True    
@@ -18,7 +20,7 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         self.__sleepTime = 10
         self.__programming = False
         self.__programmingLock = False
-        self.__obsolenceTime = 10 #inSeconds
+        self.__obsolenceTime = 60 #inSeconds
         self.__logs = True
         self.__device = {}
         self.__device['hasSample'] = False
@@ -35,12 +37,13 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         self.__settings['readyToSend'] = False
         self.__opened = False
         self.__boiler = self.CreateBoiler()
+        logger.debug('DeDitrichMCR3_RS232_RemehaPCU05: __init__ call - finished')  
 
 #----------------------
 #public members
     def run(self):
-        logging.warning('DeDitrichMCR3_RS232_RemehaPCU05: run thread')   
         self.__Connect()
+        logger.warning('DeDitrichMCR3_RS232_RemehaPCU05: run thread')
         while self.__stop:
             try:
                 if not self.__programming:
@@ -48,21 +51,27 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
                     #self.__ReadID(log=self.__logs)                     #unuseful for me
                     self.__ReadParams(log=self.__logs)
                     self.__device['TimeStamp'] = getTimeStamp()
-                    logging.info('TimeStamp: '+ str(self.__device['TimeStamp']))
+                    logger.debug('TimeStamp: '+ str(self.__device['TimeStamp']))
+                    if self.__device['hasParams']:
+                        logger.debug('CH/DHW on/off: '+ str(self.__device['RemehaParams']['CH/DHW on/off']))
+                    if self.__device['hasSample']:
+                        logger.debug('Flow Temp: '+ str(self.__device['RemehaSample']['Flow Temp']))
+                        logger.debug('Return Temp: '+ str(self.__device['RemehaSample']['Return Temp']))
+                        logger.debug('DHW-in Temp: '+ str(self.__device['RemehaSample']['DHW-in Temp']))
+                    logger.debug('========================================')
                 else:
                     self.__device['lastProgramming'] = self.__SendParams()
             except Exception as ex:
-                logging.error(ex)
-                traceback.print_exc() 
-                   
+                logger.error(ex)
+                traceback.print_exc()
+                print(ex)
             #time.sleep(self.__sleepTime)
-            t=0
-            while t < self.__sleepTime and not self.__programming:		#interrupt sleeping when programming request
-                time.sleep(2)
-                t+=2
-			
+            t = 0
+            while t < self.__sleepTime and not self.__programming:		#programming mode of high priority
+                    time.sleep(1)
+                    t+=1
         self.__Disconnect()
-        logging.info('DeDitrichMCR3_RS232_RemehaPCU05: stopped thread')   
+        logger.info('DeDitrichMCR3_RS232_RemehaPCU05: stopped thread')   
     
     def Stop(self):
         self.__stop = False
@@ -71,14 +80,6 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         self.__logs = logs
 
     def Monitoring(self):
-#        if True or self.__logs:
-#            res = {}
-#            res['DataFromDevice'] = self.__device
-#            private = {}
-#            private['Connection'] = self.__opened
-#            private['ObsolenceOfData'] = self.__GetObsolence()
-#            private['ProgrammingMode'] = self.__programming
-#            return res
         return self.__device
 
     def LastTransmissionMessages(self):
@@ -130,9 +131,9 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
                 timeout=10
             )
             self.__opened = True
-            logging.warning('Openned MCR3 connection ...')
+            logger.warning('Openned MCR3 connection ...')
         except Exception as ex:
-                logging.error(ex)
+                logger.error(ex)
                 traceback.print_exc()    
         return boiler
                 
@@ -141,16 +142,16 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
             if self.__boiler is None:
                 self.__boiler = self.CreateBoiler()
             if not self.__opened and not self.__boiler is None:
-                logging.warning('Opening MCR3 connection ...')
+                logger.warning('Opening MCR3 connection ...')
                 self.__boiler.open()
                 self.__opened = True
-                logging.warning('Openned!')
+                logger.warning('Openned!')
             if self.__boiler.isOpen():
                 self.__boiler.flushInput()
                 self.__boiler.flushOutput()
-                #logging.debug('Streams flushed')
+                #logger.debug('Streams flushed')
         except Exception as ex:
-            logging.error(ex)
+            logger.error(ex)
             traceback.print_exc()   
             self.__opened = False             
     
@@ -158,9 +159,9 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         try:
             if not self.__boiler is None:
                 self.__boiler.close()
-                logging.warning('MCR3 connection closed!')
+                logger.warning('MCR3 connection closed!')
         except Exception as ex:
-            logging.error(ex)
+            logger.error(ex)
             traceback.print_exc()
         self.__opened = False
 
@@ -169,19 +170,19 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         self.__boiler.write(bytearray.fromhex(requestCommand))
         time.sleep(delayBeforeReading)
         if log:
-            logging.info('Reading response ...')
+            logger.info('Reading response ...')
         if readdata:
             bytesToRead = self.__boiler.inWaiting()
             device_read = self.__boiler.read(bytesToRead).hex()
             if log:
-                logging.info('>> '+ device_read)
+                logger.info('>> '+ device_read)
             return device_read
         return ''
     
     def __SeriesReqRes(self, origin, readdata=True, delayBeforeReading=1, log=True):
         for i in range(len(origin)):
             if log:
-                logging.info('Requesting: '+str(i+1)+'/'+str(len(origin))+' ...')
+                logger.info('Requesting: '+str(i+1)+'/'+str(len(origin))+' ...')
             origin[i]['res'] = self.__ReqRes(requestCommand=origin[i]['req'], readdata=readdata, delayBeforeReading=delayBeforeReading, log=log)
             origin[i]['res_length'] = len(origin[i]['res'])
         return origin
@@ -191,11 +192,11 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         origin = []
         origin.append({'req':'02fe010508020169ab03'})
         if log:
-            logging.info('Requesting Remeha Sample ...')
+            logger.info('Requesting Remeha Sample ...')
         try:
             origin = self.__SeriesReqRes(origin, delayBeforeReading=self.__delayBeforeReading, log=log)
         except Exception as ex:
-            logging.error(ex)
+            logger.error(ex)
             traceback.print_exc()
             self.__Disconnect()
             return response
@@ -204,9 +205,9 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         #keys: 't'-title, 'i'- ID in reqs array, 's'-startID, 'e'-endID, 'f'-multiplyingfactor
         storedParams.append({'t':'Flow Temp',           'i':0, 's':14, 'e':18, 'f':0.01})
         storedParams.append({'t':'Return Temp',         'i':0, 's':18, 'e':22, 'f':0.01})
-        storedParams.append({'t':'DHW-in Temp',  		'i':0, 's':22, 'e':26, 'f':0.01})	#will be extended in basis of XLS map
+        storedParams.append({'t':'DHW-in Temp',  		'i':0, 's':22, 'e':26, 'f':0.01})
         err = False
-        logging.debug('Remeha Sample response: '+origin[0]['res'])
+        logger.debug('Remeha Sample response: '+origin[0]['res'])
         for param in storedParams:
             try:
                 if param['e']-param['s'] == 4:
@@ -214,9 +215,9 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
                 elif param['e']-param['s'] == 2:
                     response[param['t']] = int(origin[param['i']]['res'][param['s']:param['e']],16)
             except Exception as ex:
-                logging.warning(ex)
-                logging.warning(json.dumps(param, indent=2))
-                logging.warning(json.dumps(origin, indent=2))
+                logger.warning(ex)
+                logger.warning(json.dumps(param, indent=2))
+                logger.warning(json.dumps(origin, indent=2))
                 traceback.print_exc()
                 self.__Disconnect()
                 err = True
@@ -225,7 +226,8 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
             self.__device['RemehaSample'] = response
         #print(response)
         if log:
-            logging.debug(json.dumps(response, indent=2))
+            logger.debug(json.dumps(response, indent=2))
+        print(response)
         return response  
 
     def __ReadID(self, log=True):
@@ -237,11 +239,11 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         origin.append({'req':'02fe0b0508010b715d03'})
         #02 fe 01 05 08 02 01 69 ab 03  ???
         if log:
-            logging.info('Requesting Remeha ID ...')
+            logger.info('Requesting Remeha ID ...')
         try:
             origin = self.__SeriesReqRes(origin, delayBeforeReading=self.__delayBeforeReading, log=log)
         except Exception as ex:
-            logging.error(ex)
+            logger.error(ex)
             traceback.print_exc()
             self.__Disconnect()
             return response
@@ -250,7 +252,7 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         self.__device['RemehaID'] = response
         #print(response)
         if log:
-            logging.debug(json.dumps(response, indent=2))
+            logger.debug(json.dumps(response, indent=2))
         return response     
        
     def __ReadParams(self, log=True):
@@ -266,11 +268,11 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
 #        origin.append({'req':'02fe000508101bd90003'})
         #0742a0000540d20742a0000540d20742a0000540d2
         if log:
-            logging.info('Requesting Remeha Params ...')
+            logger.info('Requesting Remeha Params ...')
         try:
             origin = self.__SeriesReqRes(origin, delayBeforeReading=self.__delayBeforeReading, log=log)
         except Exception as ex:
-            logging.error(ex)
+            logger.error(ex)
             traceback.print_exc()
             self.__Disconnect()
             return response
@@ -278,17 +280,17 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         storedParams = []
         #keys: 't'-title, 'i'- ID in reqs array, 's'-startID, 'e'-endID, 'f'-multiplyingfactor
         #storedParams.append({'t':'Max flow temperature during CH mode',     'i':0, 's':14, 'e':16, 'f':1})
-        storedParams.append({'t':'Desired DHW temp',        'i':0, 's':16, 'e':18, 'f':1})
+        storedParams.append({'t':'Desired DHW temp',                 'i':0, 's':16, 'e':18, 'f':1})
         storedParams.append({'t':'CH/DHW on/off',           'i':0, 's':18, 'e':20, 'f':1})
-        storedParams.append({'t':'ComfortDHW',              'i':0, 's':20, 'e':22, 'f':1}) #will be extended in basis of XLS map
+        storedParams.append({'t':'ComfortDHW',                             'i':0, 's':20, 'e':22, 'f':1})
         err = False
         for param in storedParams:
             try:
                 response[param['t']] = int(origin[param['i']]['res'][param['s']:param['e']],16)*param['f']
             except Exception as ex:
-                logging.warning(ex)
-                logging.warning('param: '+json.dumps(param, indent=2))
-                logging.warning('origin: '+json.dumps(origin, indent=2))
+                logger.warning(ex)
+                logger.warning('param: '+json.dumps(param, indent=2))
+                logger.warning('origin: '+json.dumps(origin, indent=2))
                 traceback.print_exc()
                 self.__Disconnect()
                 err = True
@@ -297,7 +299,7 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
             self.__device['RemehaParams'] = response
         #print(response)
         if log:
-            logging.debug(json.dumps(response, indent=2))
+            logger.debug(json.dumps(response, indent=2))
         return response        
     
     def __SendParams(self, log=True):
@@ -337,8 +339,8 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
                     par1ext = '015003'
                     par2ext = 'afb5df0703'
         if log:
-            logging.debug('Programming CH_DHW ...')
-            logging.debug('CHDHW: '+CHDHW+' | par1ext: '+par1ext+' | par2ext: '+par2ext)
+            logger.debug('Programming CH_DHW ...')
+            logger.debug('CHDHW: '+CHDHW+' | par1ext: '+par1ext+' | par2ext: '+par2ext)
         origin = []
         origin.append({'req':'0742a0000540d20742a0000540d20742a0000540d2'})
         origin.append({'req':'02520506010b5b03'})
@@ -347,15 +349,15 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         try:
             self.__SeriesReqRes(origin, readdata=False, delayBeforeReading=self.__delayBeforeReading)
         except Exception as ex:
-            logging.error(ex)
+            logger.error(ex)
             traceback.print_exc()
             self.__Disconnect()
             response['Msg'] = ex
             self.__programming = False
             self.__programmingLock = False
             return response
-        #self.__ReadID()	#Remeha Recon send these befor programming,
-        #self.__ReadID()    #however it works at me without it
+        #self.__ReadID()
+        #self.__ReadID()   #must be checked if once would be enough
         origin = []
         origin.append({'req':'02fe000508080c930e03'})
         origin.append({'req':'02fe000518111446370'+CHDHW+'0202ffffffffffffffffffffff'+par1ext})
@@ -370,7 +372,7 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         try:
             origin = self.__SeriesReqRes(origin, delayBeforeReading=self.__delayBeforeReading)
         except Exception as ex:
-            logging.error(ex)
+            logger.error(ex)
             traceback.print_exc()
             self.__Disconnect()
             response['Msg'] = ex
@@ -380,9 +382,9 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         response['Msg'] = 'Done'
         response['Success'] = True
         self.__origin['Programming'] = origin
-        #self.__ReadParams()	#Remeha Recon send these after programming, I did it in the next loop step
+        #self.__ReadParams()
         if log:
-            logging.debug(json.dumps(response, indent=2))
+            logger.debug(json.dumps(response, indent=2))
         self.__programming = False
         self.__programmingLock = False
         return response
@@ -410,8 +412,8 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
                     elif currState == 3 and not self.__settings['payload'][param]:
                         res['CH/DHW on/off'] = 0
                     else:
-                        logging.warning('CH/DHW: No change is required. New params are the same as boiler has.')
-                        logging.warning('Programming will be continue for other new params if defined.')
+                        logger.warning('CH/DHW: No change is required. New params are the same as boiler has.')
+                        logger.warning('Programming will be continue for other new params if defined.')
                         res['Msg'] += 'DHW: No new param.'
                         continue
                     currState = res['CH/DHW on/off']
@@ -432,8 +434,8 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
                     elif currState == 3 and self.__settings['payload'][param]:
                         res['CH/DHW on/off'] = 1
                     else:
-                        logging.warning('CH/DHW: No change is required. New params are the same as boiler has.')
-                        logging.warning('Programming will be continue for other new params if defined.')
+                        logger.warning('CH/DHW: No change is required. New params are the same as boiler has.')
+                        logger.warning('Programming will be continue for other new params if defined.')
                         res['Msg'] += 'CH: No new param.'
                         continue
                     currState = res['CH/DHW on/off']
@@ -444,7 +446,7 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
             self.__settings['readyToSend'] = False
             self.__settings.pop('payload', None)
         except Exception as ex:
-            logging.warning(ex)
+            logger.warning(ex)
             traceback.print_exc()   
             res['Msg'] = str(ex)
         return res
@@ -452,7 +454,7 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
     def __GetObsolence(self): #return True if TimeStamp is obsolete
         FMT = '%Y-%m-%d %H:%M:%S'
         dT = datetime.strptime(getTimeStamp(), FMT) - datetime.strptime(self.__device['TimeStamp'], FMT)
-        logging.debug('----------------- diff='+str(dT.total_seconds())+'s')
+        logger.debug('----------------- diff='+str(dT.total_seconds())+'s')
         if dT.total_seconds() > self.__obsolenceTime:
             return True
         return False
