@@ -17,10 +17,10 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         #self.__SerialPort = 'COM5'            #for Windows OS
         self.__stop = True    
         self.__delayBeforeReading = 0.4
-        self.__sleepTime = 10
+        self.__sleepTime = 60
         self.__programming = False
         self.__programmingLock = False
-        self.__obsolenceTime = 60 #inSeconds
+        self.__obsolenceTime = 130 #inSeconds
         self.__logs = True
         self.__device = {}
         self.__device['hasSample'] = False
@@ -51,9 +51,9 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
                     #self.__ReadID(log=self.__logs)                     #unuseful for me
                     self.__ReadParams(log=self.__logs)
                     self.__device['TimeStamp'] = getTimeStamp()
-                    logger.debug('TimeStamp: '+ str(self.__device['TimeStamp']))
+                    logger.info('DeDitrichTimeStamp: '+ str(self.__device['TimeStamp']))
                     if self.__device['hasParams']:
-                        logger.debug('CH/DHW on/off: '+ str(self.__device['RemehaParams']['CH/DHW on/off']))
+                        logger.info('CH/DHW on/off: '+ str(self.__device['RemehaParams']['CH/DHW on/off']))
                     if self.__device['hasSample']:
                         logger.debug('Flow Temp: '+ str(self.__device['RemehaSample']['Flow Temp']))
                         logger.debug('Return Temp: '+ str(self.__device['RemehaSample']['Return Temp']))
@@ -170,19 +170,19 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         self.__boiler.write(bytearray.fromhex(requestCommand))
         time.sleep(delayBeforeReading)
         if log:
-            logger.info('Reading response ...')
+            logger.debug('Reading response ...')
         if readdata:
             bytesToRead = self.__boiler.inWaiting()
             device_read = self.__boiler.read(bytesToRead).hex()
             if log:
-                logger.info('>> '+ device_read)
+                logger.debug('>> '+ device_read)
             return device_read
         return ''
     
     def __SeriesReqRes(self, origin, readdata=True, delayBeforeReading=1, log=True):
         for i in range(len(origin)):
             if log:
-                logger.info('Requesting: '+str(i+1)+'/'+str(len(origin))+' ...')
+                logger.debug('Requesting: '+str(i+1)+'/'+str(len(origin))+' ...')
             origin[i]['res'] = self.__ReqRes(requestCommand=origin[i]['req'], readdata=readdata, delayBeforeReading=delayBeforeReading, log=log)
             origin[i]['res_length'] = len(origin[i]['res'])
         return origin
@@ -192,7 +192,7 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         origin = []
         origin.append({'req':'02fe010508020169ab03'})
         if log:
-            logger.info('Requesting Remeha Sample ...')
+            logger.debug('Requesting Remeha Sample ...')
         try:
             origin = self.__SeriesReqRes(origin, delayBeforeReading=self.__delayBeforeReading, log=log)
         except Exception as ex:
@@ -227,7 +227,6 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         #print(response)
         if log:
             logger.debug(json.dumps(response, indent=2))
-        print(response)
         return response  
 
     def __ReadID(self, log=True):
@@ -239,7 +238,7 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         origin.append({'req':'02fe0b0508010b715d03'})
         #02 fe 01 05 08 02 01 69 ab 03  ???
         if log:
-            logger.info('Requesting Remeha ID ...')
+            logger.debug('Requesting Remeha ID ...')
         try:
             origin = self.__SeriesReqRes(origin, delayBeforeReading=self.__delayBeforeReading, log=log)
         except Exception as ex:
@@ -268,7 +267,7 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
 #        origin.append({'req':'02fe000508101bd90003'})
         #0742a0000540d20742a0000540d20742a0000540d2
         if log:
-            logger.info('Requesting Remeha Params ...')
+            logger.debug('Requesting Remeha Params ...')
         try:
             origin = self.__SeriesReqRes(origin, delayBeforeReading=self.__delayBeforeReading, log=log)
         except Exception as ex:
@@ -339,8 +338,8 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
                     par1ext = '015003'
                     par2ext = 'afb5df0703'
         if log:
-            logger.debug('Programming CH_DHW ...')
-            logger.debug('CHDHW: '+CHDHW+' | par1ext: '+par1ext+' | par2ext: '+par2ext)
+            logger.info('Programming CH_DHW ...')
+            logger.info('CHDHW: '+CHDHW+' | par1ext: '+par1ext+' | par2ext: '+par2ext)
         origin = []
         origin.append({'req':'0742a0000540d20742a0000540d20742a0000540d2'})
         origin.append({'req':'02520506010b5b03'})
