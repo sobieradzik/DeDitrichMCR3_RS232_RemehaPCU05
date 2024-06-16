@@ -17,10 +17,10 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         #self.__SerialPort = 'COM5'            #for Windows OS
         self.__stop = True    
         self.__delayBeforeReading = 0.4
-        self.__sleepTime = 60
+        self.__sleepTime = 150
         self.__programming = False
         self.__programmingLock = False
-        self.__obsolenceTime = 130 #inSeconds
+        self.__obsolenceTime = 2*self.__sleepTime+10 #inSeconds
         self.__logs = True
         self.__device = {}
         self.__device['hasSample'] = False
@@ -51,9 +51,9 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
                     #self.__ReadID(log=self.__logs)                     #unuseful for me
                     self.__ReadParams(log=self.__logs)
                     self.__device['TimeStamp'] = getTimeStamp()
-                    logger.info('DeDitrichTimeStamp: '+ str(self.__device['TimeStamp']))
+                    logger.debug('DeDitrichTimeStamp: '+ str(self.__device['TimeStamp']))
                     if self.__device['hasParams']:
-                        logger.info('CH/DHW on/off: '+ str(self.__device['RemehaParams']['CH/DHW on/off']))
+                        logger.debug('CH/DHW on/off: '+ str(self.__device['RemehaParams']['CH/DHW on/off']))
                     if self.__device['hasSample']:
                         logger.debug('Flow Temp: '+ str(self.__device['RemehaSample']['Flow Temp']))
                         logger.debug('Return Temp: '+ str(self.__device['RemehaSample']['Return Temp']))
@@ -378,10 +378,11 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
             self.__programming = False
             self.__programmingLock = False
             return response
-        response['Msg'] = 'Done'
+        response['Msg'] = 'Done. Accepted setting CHDHW: '+str(CHDHW)
         response['Success'] = True
         self.__origin['Programming'] = origin
-        #self.__ReadParams()
+        time.sleep(2)
+        self.__ReadParams()
         if log:
             logger.debug(json.dumps(response, indent=2))
         self.__programming = False
