@@ -13,7 +13,7 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
     def __init__(self):
         super(DeDitrichMCR3_RS232_RemehaPCU05, self).__init__()
         logger.debug('DeDitrichMCR3_RS232_RemehaPCU05: __init__ call')   
-        self.__SerialPort = '/dev/ttyUSB0'   #for RPi
+        self.__SerialPort = '/dev/ttyUSB_DeDitrich'   #for RPi
         #self.__SerialPort = 'COM5'            #for Windows OS
         self.__stop = True    
         self.__delayBeforeReading = 0.4

@@ -21,7 +21,7 @@ def setup_logger(logger_name,logfile):
                 logger.addHandler(ch)
                 return logger
 
-logger=setup_logger('mylogger','/home/pi/Desktop/DeDitrich_debug_log.txt')
+logger=setup_logger('mylogger','/home/sobieradzik/DeDitrich_debug_log.txt')
 logger.info("-------------------------------")
 
 from DeDitrichMCR3_RS232_RemehaPCU05 import DeDitrichMCR3_RS232_RemehaPCU05 as Boiler

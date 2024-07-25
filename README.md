@@ -13,6 +13,10 @@ The exported class is a seperate thread that can (re)connect, read parts of Samp
 Used device [Converter USB-UART (TTL) - PL2303 - wtyk USB A - wersja V2 - Waveshare 20265](https://botland.com.pl/konwertery-usb-uart-rs232-rs485/21639-konwerter-usb-uart-ttl-pl2303-wtyk-usb-a-wersja-v2-waveshare-20265.html?cd=18298825651&ad=&kd=&gad_source=1&gclid=Cj0KCQjw3ZayBhDRARIsAPWzx8oK4hMIQETzEfI920MmHYS5eLTmSMV_LnCyBHlagrI80UE5kLKQSH8aAkzVEALw_wcB)
 
 ![Screenshot](converter.jpg)
+## Version 1.1
+- Logging improved,
+- Set high priority when programming - dusturbing thread sleeping
+- Assigned fixed USB port name to my RPi (https://www.freva.com/assign-fixed-usb-port-names-to-your-raspberry-pi/).
 
 ## Version 1.0
 - self-organizing thread
