@@ -17,7 +17,7 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         #self.__SerialPort = 'COM5'            #for Windows OS
         self.__stop = True    
         self.__delayBeforeReading = 0.4
-        self.__sleepTime = 15
+        self.__sleepTime = 150
         self.__programming = False
         self.__programmingLock = False
         self.__obsolenceTime = 2*self.__sleepTime+10 #inSeconds
