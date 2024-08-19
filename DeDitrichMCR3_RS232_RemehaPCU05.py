@@ -32,7 +32,6 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
             "ComfortDHW": 2
         }
         self.__device['hasParams'] = True
-        #self.__device['hasParams'] = False
         self.__device['TimeStamp'] = '2000-01-01 00:00:00'
         lastProgramming = {}
         lastProgramming['Success'] = False
@@ -50,31 +49,23 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
 #public members
     def run(self):
         self.__Connect()
-        logger.warning('DeDitrichMCR3_RS232_RemehaPCU05: run thread. Boiler connected='+str(self.__device['connected']))
+        logger.warning('DeDitrichMCR3_RS232_RemehaPCU05: run thread')
         while self.__stop:
             try:
-                if not self.__device['connected']:
-                    logger.debug('RECONNECTING Boiler!!')
-                    print('RECONNECTING Boiler!!')
-                    self.__Connect()
-                    print('Boiler connected='+str(self.__device['connected']))
                 if not self.__programming:
-                    if not self.__device['connected']:
-                        logger.debug('Boiler NOT CONNECTED!!')
-                        print('Boiler NOT CONNECTED!!')
-                    else:
-                        self.__ReadSample(log=self.__logs)
-                        #self.__ReadID(log=self.__logs)                     #unuseful for me
-                        self.__ReadParams(log=self.__logs)
-                        self.__device['TimeStamp'] = getTimeStamp()
-                        logger.debug('DeDitrichTimeStamp: '+ str(self.__device['TimeStamp']))
-                        if self.__device['hasParams']:
-                            logger.debug('CH/DHW on/off: '+ str(self.__device['RemehaParams']['CH/DHW on/off']))
-                        if self.__device['hasSample']:
-                            logger.debug('Flow Temp: '+ str(self.__device['RemehaSample']['Flow Temp']))
-                            logger.debug('Return Temp: '+ str(self.__device['RemehaSample']['Return Temp']))
-                            logger.debug('DHW-in Temp: '+ str(self.__device['RemehaSample']['DHW-in Temp']))
-                        logger.debug('========================================')
+                    self.__ReadSample(log=self.__logs)
+                    #self.__ReadID(log=self.__logs)                     #unuseful for me
+                    self.__ReadParams(log=self.__logs)
+                    self.__device['TimeStamp'] = getTimeStamp()
+                    logger.debug('!!!DeDitrichTimeStamp: '+ str(self.__device['TimeStamp'])+ '   connected='+str(self.__device['connected']))
+                    print('!!!DeDitrichTimeStamp: '+ str(self.__device['TimeStamp'])+ '   connected='+str(self.__device['connected']))
+                    if self.__device['hasParams']:
+                        logger.debug('CH/DHW on/off: '+ str(self.__device['RemehaParams']['CH/DHW on/off']))
+                    if self.__device['hasSample']:
+                        logger.debug('Flow Temp: '+ str(self.__device['RemehaSample']['Flow Temp']))
+                        logger.debug('Return Temp: '+ str(self.__device['RemehaSample']['Return Temp']))
+                        logger.debug('DHW-in Temp: '+ str(self.__device['RemehaSample']['DHW-in Temp']))
+                    logger.debug('========================================')
                 else:
                     self.__device['lastProgramming'] = self.__SendParams()
             except Exception as ex:
@@ -147,8 +138,7 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
                 timeout=10
             )
             self.__opened = True
-            self.__device['connected'] = True
-            logger.warning('Creating MCR3 connection ...')
+            logger.warning('Openned MCR3 connection ...')
         except Exception as ex:
                 logger.error(ex)
                 traceback.print_exc()    
@@ -156,29 +146,21 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
                 
     def __Connect(self):
         try:
-            #logger.warning('in Connecti #1; connected='+str(self.__device['connected']))
             if self.__boiler is None:
                 self.__boiler = self.CreateBoiler()
-            #logger.warning('in Connecti #2; __opened='+str(self.__opened)+' boiler='+str(self.__boiler))
             if not self.__opened and not self.__boiler is None:
-                logger.debug('Opening MCR3 connection ...')
+                logger.warning('Opening MCR3 connection ...')
                 self.__boiler.open()
                 self.__opened = True
-                self.__device['connected'] = True
-                logger.debug('Openned!')
-                #logger.warning('MCR3 CONNECTED; connected='+str(self.__device['connected']))
-                print('MCR3 CONNECTED; connected='+str(self.__device['connected']))
+                logger.warning('Openned!')
             if self.__boiler.isOpen():
-                #logger.warning('in Connecti #3; connected='+str(self.__device['connected']))
                 self.__boiler.flushInput()
                 self.__boiler.flushOutput()
                 #logger.debug('Streams flushed')
         except Exception as ex:
             logger.error(ex)
             traceback.print_exc()   
-            self.__opened = False
-            self.__device['connected'] = False
-            logger.warning('in Connect() #4; connected='+str(self.__device['connected']))
+            self.__opened = False             
     
     def __Disconnect(self):
         try:
@@ -241,16 +223,17 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
                 elif param['e']-param['s'] == 2:
                     response[param['t']] = int(origin[param['i']]['res'][param['s']:param['e']],16)
             except Exception as ex:
-                logger.error(ex)
-                logger.debug(json.dumps(param, indent=2))
-                logger.debug(json.dumps(origin, indent=2))
+                logger.warning(ex)
+                logger.warning(json.dumps(param, indent=2))
+                logger.warning(json.dumps(origin, indent=2))
                 traceback.print_exc()
                 self.__Disconnect()
                 err = True
         if not err:
             self.__device['hasSample'] = True
             self.__device['RemehaSample'] = response
-        print(response)
+        #print(response)
+        self.__device['connected'] = True
         if log:
             logger.debug(json.dumps(response, indent=2))
         return response  
@@ -276,6 +259,7 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
         self.__device['hasID'] = True
         self.__device['RemehaID'] = response
         #print(response)
+        self.__device['connected'] = True
         if log:
             logger.debug(json.dumps(response, indent=2))
         return response     
@@ -313,16 +297,22 @@ class DeDitrichMCR3_RS232_RemehaPCU05(threading.Thread):
             try:
                 response[param['t']] = int(origin[param['i']]['res'][param['s']:param['e']],16)*param['f']
             except Exception as ex:
-                logger.error(ex)
-                logger.debug('param: '+json.dumps(param, indent=2))
-                logger.debug('origin: '+json.dumps(origin, indent=2))
+                logger.warning(ex)
+                logger.warning('param: '+json.dumps(param, indent=2))
+                logger.warning('origin: '+json.dumps(origin, indent=2))
                 traceback.print_exc()
                 self.__Disconnect()
                 err = True
+        lastCHCWU_state = self.__device['RemehaParams']['CH/DHW on/off']
+        if response['CH/DHW on/off'] > 3:
+            logger.warning('Wrong CH/DHW on/off value ('+str(response['CH/DHW on/off'])+') is rejected and back to ('+str(lastCHCWU_state)+')')
+            response['CH/DHW on/off'] = lastCHCWU_state
+            
         if not err:
             self.__device['hasParams'] = True
             self.__device['RemehaParams'] = response
         #print(response)
+        self.__device['connected'] = True
         if log:
             logger.debug(json.dumps(response, indent=2))
         return response        

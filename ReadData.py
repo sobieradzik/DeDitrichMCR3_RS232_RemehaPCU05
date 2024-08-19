@@ -5,13 +5,13 @@ import logging
 
 def setup_logger(logger_name,logfile):
                 logger = logging.getLogger(logger_name)
-                logger.setLevel(logging.INFO)
+                logger.setLevel(logging.DEBUG)
                 # create file handler which logs even debug messages
                 fh = logging.FileHandler(logfile)
-                fh.setLevel(logging.INFO)
+                fh.setLevel(logging.DEBUG)
                 # create console handler with a higher log level
                 ch = logging.StreamHandler()
-                ch.setLevel(logging.INFO)
+                ch.setLevel(logging.DEBUG)
                 # create formatter and add it to the handlers
                 formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s [%(filename)s line %(lineno)d]')
                 fh.setFormatter(formatter)
@@ -21,7 +21,8 @@ def setup_logger(logger_name,logfile):
                 logger.addHandler(ch)
                 return logger
 
-logger=setup_logger('mylogger','/home/sobieradzik/DeDitrich_debug_log.txt')
+#logger=setup_logger('mylogger','/home/sobieradzik/DeDitrich_debug_log.txt')
+logger=setup_logger('mylogger','d:\DeDitrich_debug_log.txt')
 logger.info("-------------------------------")
 
 from DeDitrichMCR3_RS232_RemehaPCU05 import DeDitrichMCR3_RS232_RemehaPCU05 as Boiler
